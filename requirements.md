@@ -105,3 +105,64 @@ All API calls should have proper error handling
 Results should be cached locally for offline viewing
 Use React Context for state management of uploads/results
 Implement proper loading states throughout user flow
+
+---
+
+## Why This Happens
+
+- **Image Quality:** Blurry, low-resolution, poorly lit, or skewed images are hard for AI (and even humans) to read.
+- **AI Model Limitation:** The model you’re using (via OpenRouter) is a general-purpose LLM, not a specialized OCR or document analysis model.
+- **No Preprocessing:** The image is sent as-is; there’s no enhancement, cropping, or preprocessing to improve clarity.
+
+---
+
+## How to Improve Results
+
+### 1. **Guide the User**
+- Add a message or UI tip: “For best results, use a well-lit, high-resolution, straight photo of the report. Avoid shadows and blurriness.”
+- You can show this as a helper text below the upload buttons.
+
+### 2. **Image Preprocessing (Optional, Advanced)**
+- Use a library to auto-crop, enhance contrast, or sharpen the image before sending to the AI.
+- This is possible with some native modules, but not in Expo Go. If you want to go this route, you’ll need to eject or use a custom dev client.
+
+### 3. **Use a Dedicated OCR Service**
+- For best accuracy, use a dedicated OCR API (like Google Vision, Tesseract, or AWS Textract) to extract text from the image, then send the extracted text to the AI for analysis.
+- This is the industry standard for document analysis.
+
+### 4. **Prompt Engineering**
+- You can try tweaking your AI prompt to say:  
+  “If the image is unclear, try your best to extract any visible information. If possible, provide partial results or suggestions for improving image quality.”
+
+---
+
+## Example: Add a Helper Tip in UI
+
+In your `ReportUpload.tsx`, add this below the title:
+
+```jsx
+<Text style={styles.helperText}>
+  For best results, use a clear, well-lit, high-resolution photo of the report. Avoid shadows and blurriness.
+</Text>
+```
+
+And in your styles:
+
+```js
+helperText: {
+  color: '#888',
+  fontSize: 14,
+  marginBottom: 12,
+  textAlign: 'center',
+  maxWidth: 320,
+},
+```
+
+---
+
+## Summary
+
+- The “image is not clear” message is expected for poor-quality images.
+- You can help users get better results with UI tips and, if needed, by integrating OCR or preprocessing in the future.
+
+Would you like me to add the helper tip to your UI, or do you want to explore OCR integration?

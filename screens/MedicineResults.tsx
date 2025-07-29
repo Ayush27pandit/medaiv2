@@ -1,110 +1,51 @@
-// import React from 'react';
-// import { View, StyleSheet, ScrollView } from 'react-native';
-// import { Text, Button } from 'react-native-paper';
-// import { useRouter, useLocalSearchParams } from 'expo-router';
-// import ResultCard from '../components/ResultCard';
-
-// const MedicineResults = () => {
-//   const router = useRouter();
-//   const params = useLocalSearchParams();
-//   let result: any = null;
-//   try {
-//     result = params.result ? JSON.parse(params.result as string) : null;
-//   } catch {
-//     result = null;
-//   }
-
-//   // Debug output
-//   console.log('params:', params);
-//   console.log('result:', result);
-
-//   // Try to extract the AI's message content
-//   let content = '';
-//   if (result && result.choices && result.choices[0]?.message?.content) {
-//     content = result.choices[0].message.content;
-//   }
-
-//   return (
-//     <ScrollView contentContainerStyle={styles.container}>
-//       <Text variant="headlineMedium" style={styles.title}>Medicine Analysis Results</Text>
-//       {content ? (
-//         <ResultCard title="AI Analysis" content={content} />
-//       ) : (
-//         <Text>No analysis result found.</Text>
-//       )}
-      
-     
-//       <Button onPress={() => router.back()} style={styles.backBtn}>Back</Button>
-//     </ScrollView>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flexGrow: 1,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     padding: 16,
-//     backgroundColor: '#fff',
-//   },
-//   title: {
-//     marginBottom: 24,
-//   },
-//   backBtn: {
-//     marginTop: 16,
-//   },
-// });
-
-// export default MedicineResults; 
-
-// app/medicine-results.tsx
-
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Button } from 'react-native-paper';
+import { StyleSheet, ScrollView, View, Image, Alert } from 'react-native';
+import { Text, Button, Card, IconButton } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import ResultCard from '../components/ResultCard';
+import Markdown from 'react-native-markdown-display';
+import * as Clipboard from 'expo-clipboard';
 
 const MedicineResults = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
 
   let result: any = null;
-  let parsedJson: any = null;
   let content = '';
+  let image = '';
 
   try {
     result = params.result ? JSON.parse(params.result as string) : null;
     content = result?.choices?.[0]?.message?.content || '';
-    if (content) {
-      parsedJson = JSON.parse(content);
-    }
+    image = typeof params.image === 'string' ? params.image : '';
+    console.log('AI Medicine Result:', content);
   } catch (err) {
-    console.error('JSON parse error:', err);
+    content = 'No analysis result found.';
+    image = '';
   }
+
+  const handleCopy = () => {
+    Clipboard.setStringAsync(content);
+    Alert.alert('Copied', 'AI result copied to clipboard!');
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text variant="headlineMedium" style={styles.title}>Medicine Analysis Results</Text>
-
-      {parsedJson ? (
-        <>
-          <ResultCard title="Name" content={parsedJson.name} />
-          <ResultCard title="Usage" content={parsedJson.usage} />
-          <ResultCard title="Dosage (Children)" content={parsedJson.dosage?.children} />
-          <ResultCard title="Dosage (Adults)" content={parsedJson.dosage?.adults} />
-          <ResultCard title="Side Effects" content={parsedJson.sideEffects} />
-          <ResultCard title="Precautions" content={parsedJson.precautions} />
-          <ResultCard title="Alternatives" content={parsedJson.alternatives?.join(', ')} />
-          <ResultCard title="Buy Links" content={parsedJson.buyLinks?.join('\n')} />
-        </>
-      ) : content ? (
-        <ResultCard title="Raw AI Output" content={content} />
-      ) : (
-        <Text>No analysis result found.</Text>
-      )}
-
-      <Button onPress={() => router.back()} style={styles.backBtn}>Back</Button>
+      {image ? (
+        <Card style={styles.imageCard}>
+          <Card.Cover source={{ uri: image }} style={styles.imagePreview} resizeMode="contain" />
+        </Card>
+      ) : null}
+      <Card style={styles.resultCard}>
+        <Card.Content>
+          <View style={styles.resultHeader}>
+            <Text style={styles.resultTitle}>AI Result</Text>
+            <IconButton icon="content-copy" size={20} onPress={handleCopy} />
+          </View>
+          <Markdown style={markdownStyles}>{content && content.trim().length > 0 ? content : 'No analysis result found. Please try a clearer image.'}</Markdown>
+        </Card.Content>
+      </Card>
+      <Button mode="outlined" style={styles.tryAgainBtn} onPress={() => router.back()}>Try Again</Button>
     </ScrollView>
   );
 };
@@ -112,18 +53,60 @@ const MedicineResults = () => {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
     backgroundColor: '#fff',
   },
   title: {
-    marginBottom: 24,
+    marginBottom: 16,
+    fontWeight: 'bold',
+    color: '#1976D2',
     textAlign: 'center',
   },
-  backBtn: {
-    marginTop: 16,
+  imageCard: {
+    width: 220,
+    height: 220,
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 3,
+  },
+  imagePreview: {
+    width: 220,
+    height: 220,
+    borderRadius: 16,
+    backgroundColor: '#f4f4f4',
+  },
+  resultCard: {
+    width: '100%',
+    marginBottom: 16,
+    borderRadius: 12,
+    elevation: 2,
+  },
+  resultHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  resultTitle: {
+    fontWeight: 'bold',
+    fontSize: 18,
+    flex: 1,
+    color: '#1976D2',
+  },
+  tryAgainBtn: {
+    marginTop: 12,
+    alignSelf: 'center',
   },
 });
+
+const markdownStyles = {
+  body: { fontSize: 16 },
+  heading1: { color: '#1976D2', fontSize: 22, marginBottom: 8 },
+  heading2: { color: '#1976D2', fontSize: 18, marginBottom: 6 },
+  code_block: { backgroundColor: '#f0f0f0', borderRadius: 6, padding: 8 },
+  bullet_list: { marginLeft: 16 },
+  ordered_list: { marginLeft: 16 },
+};
 
 export default MedicineResults;

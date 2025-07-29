@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Image, Alert } from 'react-native';
-import { Text, Button } from 'react-native-paper';
+import { Text, Button, Card, ActivityIndicator, IconButton } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
 import { useRouter } from 'expo-router';
 import UploadButton from '../components/UploadButton';
-import { analyzeMedicineImage } from '../services/api';
+import { analyzeMedicineText } from '../services/api';
+import { extractTextFromImage } from '../services/ocr';
 
 const MedicineUpload = () => {
   const router = useRouter();
@@ -43,17 +43,27 @@ const MedicineUpload = () => {
     }
   };
 
+  const clearImage = () => setImage(null);
+
   const handleUpload = async () => {
     if (!image) return;
     setLoading(true);
     try {
-      // Convert image to base64
-      const base64 = await FileSystem.readAsStringAsync(image, { encoding: FileSystem.EncodingType.Base64 });
-      // Call API
-      const result = await analyzeMedicineImage(base64);
-      // Pass result to results screen (via router.push with params or state)
-      router.push({ pathname: '/MedicineResults', params: { result: JSON.stringify(result) } });
+      console.log('Image URI:', image);
+      // OCR step
+      const extractedText = await extractTextFromImage(image);
+      console.log('Extracted text:', extractedText);
+      if (!extractedText || extractedText.trim().length === 0) {
+        Alert.alert('Error', 'Could not extract text from the image. Please try a clearer photo.');
+        setLoading(false);
+        return;
+      }
+      // Send extracted text directly to AI for analysis
+      const result = await analyzeMedicineText(extractedText);
+      console.log('AI result:', result);
+      router.push({ pathname: '/MedicineResults', params: { result: JSON.stringify(result), image } });
     } catch (err) {
+      console.error('OCR/Upload error:', err);
       Alert.alert('Error', 'Failed to analyze image. Please try again.');
     } finally {
       setLoading(false);
@@ -63,15 +73,22 @@ const MedicineUpload = () => {
   return (
     <View style={styles.container}>
       <Text variant="headlineMedium" style={styles.title}>Medicine Analyzer</Text>
+      <Text style={styles.helperText}>
+        For best results, use a clear, well-lit, high-resolution photo of the medicine. Avoid shadows and blurriness.
+      </Text>
       <View style={styles.buttonRow}>
-        <Button mode="outlined" onPress={pickImage} style={styles.button}>Pick from Gallery</Button>
-        <Button mode="outlined" onPress={takePhoto} style={styles.button}>Take Photo</Button>
+        <Button mode="contained" onPress={pickImage} style={styles.button}>Pick from Gallery</Button>
+        <Button mode="contained" onPress={takePhoto} style={styles.button}>Take Photo</Button>
       </View>
       {image && (
-        <Image source={{ uri: image }} style={styles.preview} resizeMode="contain" />
+        <Card style={styles.previewCard}>
+          <Card.Cover source={{ uri: image }} style={styles.preview} resizeMode="contain" />
+          <IconButton icon="close" size={20} style={styles.clearBtn} onPress={clearImage} />
+        </Card>
       )}
-      <UploadButton label="Upload & Analyze" onPress={handleUpload} loading={loading} />
-      <Button onPress={() => router.back()} style={styles.backBtn}>Back</Button>
+      {loading && <ActivityIndicator style={{ marginVertical: 12 }} />}
+      <UploadButton label="Upload & Analyze" onPress={handleUpload} loading={loading} disabled={!image || loading} />
+      <Button onPress={() => router.back()} style={styles.backBtn} mode="text">Back</Button>
     </View>
   );
 };
@@ -85,7 +102,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   title: {
-    marginBottom: 24,
+    marginBottom: 16,
+    fontWeight: 'bold',
+    color: '#1976D2',
+  },
+  helperText: {
+    color: '#888',
+    fontSize: 14,
+    marginBottom: 12,
+    textAlign: 'center',
+    maxWidth: 320,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -94,17 +120,33 @@ const styles = StyleSheet.create({
   },
   button: {
     marginHorizontal: 4,
+    borderRadius: 8,
+  },
+  previewCard: {
+    width: 220,
+    height: 220,
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 3,
+    position: 'relative',
   },
   preview: {
     width: 220,
     height: 220,
-    marginVertical: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#ccc',
+    borderRadius: 16,
+    backgroundColor: '#f4f4f4',
+  },
+  clearBtn: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#fff',
+    zIndex: 2,
   },
   backBtn: {
-    marginTop: 16,
+    marginTop: 18,
+    alignSelf: 'center',
   },
 });
 

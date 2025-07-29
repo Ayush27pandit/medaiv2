@@ -12,6 +12,11 @@ const HomeScreen = () => {
       <Text variant="headlineMedium" style={styles.title}>MedAI</Text>
       <UploadButton label="Medicine Analyzer" onPress={() => router.push('/MedicineUpload')} />
       <UploadButton label="Health Report Analyzer" onPress={() => router.push('/ReportUpload')} />
+      <UploadButton label="Medicine Reminder" onPress={() => router.push('/MedicineReminder')} />
+      <UploadButton label="Dose History" onPress={() => router.push('/HistoryScreen')} />
+      <Text style={styles.disclaimer}>
+        Disclaimer: This app provides AI-generated information and is not a substitute for professional medical advice. Always consult a qualified doctor for medical concerns.
+      </Text>
     </View>
   );
 };
@@ -31,6 +36,13 @@ const styles = StyleSheet.create({
   },
   title: {
     marginBottom: 32,
+  },
+  disclaimer: {
+    marginTop: 32,
+    color: '#D32F2F',
+    fontSize: 13,
+    textAlign: 'center',
+    maxWidth: 340,
   },
 });
 
