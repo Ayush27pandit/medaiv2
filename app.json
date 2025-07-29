@@ -38,8 +38,6 @@
     "experiments": {
       "typedRoutes": true
     },
-    "extra": {
-      "AI_API": "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"
-    }
+    "extra": {}
   }
 }
